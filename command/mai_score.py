@@ -7,12 +7,13 @@ from hoshino.typing import CQEvent, MessageSegment
 
 from .. import log, sv
 from ..libraries.image import image_to_base64, text_to_image
-from ..libraries.maimai_best_50 import generate
+from ..libraries.maimai_best_50 import generate, generate40
 from ..libraries.maimaidx_music import mai
 from ..libraries.maimaidx_music_info import draw_music_play_data
 from ..libraries.maimaidx_player_score import music_global_data
 
 best50  = sv.on_prefix(['b50', 'B50'])
+best40  = sv.on_prefix(['b40', 'B40'])
 minfo   = sv.on_prefix(['minfo', 'Minfo', 'MINFO', 'info', 'Info', 'INFO'])
 ginfo   = sv.on_prefix(['ginfo', 'Ginfo', 'GINFO'])
 score   = sv.on_prefix(['分数线'])
@@ -26,8 +27,18 @@ async def _(bot: NoneBot, ev: CQEvent):
         if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
     await bot.send(ev, await generate(qqid, username), at_sender=True)
-    
-    
+
+
+@best40
+async def _(bot: NoneBot, ev: CQEvent):
+    qqid = ev.user_id
+    username: str = ev.message.extract_plain_text().strip()
+    for i in ev.message:
+        if i.type == 'at' and i.data['qq'] != 'all':
+            qqid = int(i.data['qq'])
+    await bot.send(ev, await generate40(qqid, username), at_sender=True)
+
+
 @minfo
 async def _(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id

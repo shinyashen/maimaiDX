@@ -251,7 +251,190 @@ class DrawBest(ScoreBaseImage):
             self.text_color, 'mm', 5, (255, 255, 255, 255)
         )
 
-        self.whiledraw(self.sdBest, True)
+        self.whiledraw(self.sdBest, True)  # [:25]
+        self.whiledraw(self.dxBest, False)
+
+        return self._im
+
+
+class DrawBest40(ScoreBaseImage):
+
+    def __init__(self, UserInfo: UserInfo, qqid: Optional[Union[int, str]] = None) -> None:
+        super().__init__(Image.open(maimaidir / 'b50_bg.png').convert('RGBA'))
+        self.userName = UserInfo.nickname
+        self.plate = UserInfo.plate
+        self.addRating = UserInfo.additional_rating
+        self.Rating = UserInfo.rating
+        self.sdBest = UserInfo.charts.sd
+        self.dxBest = UserInfo.charts.dx
+        self.qqid = qqid
+
+    def _findRaPic(self) -> str:
+        """
+        寻找指定的Rating图片
+        
+        Returns:
+            `str` 返回图片名称
+        """
+        if self.Rating < 1000:
+            num = '01'
+        elif self.Rating < 2000:
+            num = '02'
+        elif self.Rating < 3000:
+            num = '03'
+        elif self.Rating < 4000:
+            num = '04'
+        elif self.Rating < 5000:
+            num = '05'
+        elif self.Rating < 6000:
+            num = '06'
+        elif self.Rating < 7000:
+            num = '07'
+        elif self.Rating < 8000:
+            num = '08'
+        elif self.Rating < 8500:
+            num = '09'
+        else:
+            num = '11'
+        return f'UI_CMN_DXRating_{num}.png'
+
+    def _findMatchLevel(self) -> str:
+        """
+        寻找匹配等级图片
+        
+        Returns:
+            `str` 返回图片名称
+        """
+        if self.addRating <= 10:
+            num = f'{self.addRating:02d}'
+        else:
+            num = f'{self.addRating + 1:02d}'
+        return f'UI_DNM_DaniPlate_{num}.png'
+
+    def _computeOldRa(self, ds: float, achievement: float) -> int:
+        """
+        旧方法计算底分
+        
+        Params:
+            `ds`: 定数
+            `achievement`: 成绩
+        Returns:
+            返回底分
+        """
+        if achievement < 50:
+            if achievement < 10:
+                baseRa = 0.0
+            elif achievement < 20:
+                baseRa = 1.0
+            elif achievement < 30:
+                baseRa = 2.0
+            elif achievement < 40:
+                baseRa = 3.0
+            else:
+                baseRa = 4.0
+            rate = 'D'
+        elif achievement < 60:
+            baseRa = 5.0
+            rate = 'C'
+        elif achievement < 70:
+            baseRa = 6.0
+            rate = 'B'
+        elif achievement < 75:
+            baseRa = 7.0
+            rate = 'BB'
+        elif achievement < 80:
+            baseRa = 7.5
+            rate = 'BBB'
+        elif achievement < 90:
+            baseRa = 8.0
+            rate = 'A'
+        elif achievement < 94:
+            baseRa = 9.0
+            rate = 'AA'
+        elif achievement < 97:
+            baseRa = 9.4
+            rate = 'AAA'
+        elif achievement < 98:
+            baseRa = 10.0
+            rate = 'S'
+        elif achievement < 99:
+            baseRa = 11.0
+            rate = 'Sp'
+        elif achievement < 99.5:
+            baseRa = 12.0
+            rate = 'SS'
+        elif achievement < 100:
+            baseRa = 13.0
+            rate = 'SSp'
+        elif achievement < 100.5:
+            baseRa = 13.5
+            rate = 'SSS'
+        else:
+            baseRa = 14.0
+            rate = 'SSSp'
+
+        return math.floor(ds * (min(100.5, achievement) / 100) * baseRa)
+
+    def _reCalRa(self):
+        """
+        重新计算底分
+        
+        Returns:
+            `int` 返回底分
+        """
+        for i in self.sdBest + self.dxBest:
+            i.ra = self._computeOldRa(i.ds, i.achievements)
+        self.Rating = sum([_.ra for _ in self.sdBest[:25]]) + sum([_.ra for _ in self.dxBest] + [2100])
+
+    async def draw(self) -> Image.Image:
+
+        self._reCalRa()
+        logo = Image.open(maimaidir / 'logo.png').resize((249, 120))
+        dx_rating = Image.open(maimaidir / self._findRaPic()).resize((186, 35))
+        Name = Image.open(maimaidir / 'Name.png')
+        MatchLevel = Image.open(maimaidir / self._findMatchLevel()).resize((80, 32))
+        ClassLevel = Image.open(maimaidir / 'UI_FBR_Class_00.png').resize((90, 54))
+        rating = Image.open(maimaidir / 'UI_CMN_Shougou_Rainbow.png').resize((270, 27))
+
+        self._im.alpha_composite(logo, (14, 60))
+        if self.plate:
+            plate = Image.open(platedir / f'{self.plate}.png').resize((800, 130))
+        else:
+            plate = Image.open(maimaidir / 'UI_Plate_300501.png').resize((800, 130))
+        self._im.alpha_composite(plate, (300, 60))
+        icon = Image.open(maimaidir / 'UI_Icon_309503.png').resize((120, 120))
+        self._im.alpha_composite(icon, (305, 65))
+        if self.qqid:
+            try:
+                qqLogo = Image.open(BytesIO(await maiApi.qqlogo(qqid=self.qqid)))
+                self._im.alpha_composite(qqLogo.convert('RGBA').resize((120, 120)), (305, 65))
+            except Exception:
+                pass
+        self._im.alpha_composite(dx_rating, (435, 72))
+        Rating = f'{self.Rating:05d}'
+        for n, i in enumerate(Rating):
+            self._im.alpha_composite(
+                Image.open(maimaidir / f'UI_NUM_Drating_{i}.png').resize((17, 20)), (520 + 15 * n, 80)
+            )
+        self._im.alpha_composite(Name, (435, 115))
+        self._im.alpha_composite(MatchLevel, (625, 120))
+        self._im.alpha_composite(ClassLevel, (620, 60))
+        self._im.alpha_composite(rating, (435, 160))
+
+        self._sy.draw(445, 135, 25, self.userName, (0, 0, 0, 255), 'lm')
+        sdrating, dxrating = sum([_.ra for _ in self.sdBest[:25]]), sum([_.ra for _ in self.dxBest])
+        self._tb.draw(
+            570, 172, 17, 
+            f'B40: {sdrating + dxrating} + Rank: 2100 = {self.Rating}', 
+            (0, 0, 0, 255), 'mm', 3, (255, 255, 255, 255)
+        )
+        self._sy.draw(
+            700, 1570, 27, 
+            f'Designed by Yuri-YuzuChaN & BlueDeer233. Generated by {BOTNAME} BOT', 
+            self.text_color, 'mm', 5, (255, 255, 255, 255)
+        )
+
+        self.whiledraw(self.sdBest[:25], True)
         self.whiledraw(self.dxBest, False)
 
         return self._im
@@ -425,6 +608,32 @@ async def generate(qqid: Optional[int] = None, username: Optional[str] = None) -
             qqid = None
         userinfo = await maiApi.query_user_b50(qqid=qqid, username=username)
         draw_best = DrawBest(userinfo, qqid)
+
+        msg = MessageSegment.image(image_to_base64(await draw_best.draw()))
+    except (UserNotFoundError, UserNotExistsError, UserDisabledQueryError) as e:
+        msg = str(e)
+    except Exception as e:
+        log.error(traceback.format_exc())
+        msg = f'未知错误：{type(e)}\n请联系Bot管理员'
+    return msg
+
+
+async def generate40(qqid: Optional[int] = None, username: Optional[str] = None) -> Union[MessageSegment, str]:
+    """
+    生成b40
+    
+    Params:
+        `qqid`: QQ号
+        `username`: 用户名
+        `icon`: 头像
+    Returns:
+        `Union[MessageSegment, str]`
+    """
+    try:
+        if username:
+            qqid = None
+        userinfo = await maiApi.query_user_b50(qqid=qqid, username=username)
+        draw_best = DrawBest40(userinfo, qqid)
 
         msg = MessageSegment.image(image_to_base64(await draw_best.draw()))
     except (UserNotFoundError, UserNotExistsError, UserDisabledQueryError) as e:
