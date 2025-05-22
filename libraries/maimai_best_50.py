@@ -346,25 +346,25 @@ class DrawBest40(ScoreBaseImage):
             baseRa = 7.5
             rate = 'BBB'
         elif achievement < 90:
-            baseRa = 8.0
+            baseRa = 8.5
             rate = 'A'
         elif achievement < 94:
-            baseRa = 9.0
+            baseRa = 9.5
             rate = 'AA'
         elif achievement < 97:
-            baseRa = 9.4
+            baseRa = 10.5
             rate = 'AAA'
         elif achievement < 98:
-            baseRa = 10.0
+            baseRa = 12.5
             rate = 'S'
         elif achievement < 99:
-            baseRa = 11.0
+            baseRa = 12.7
             rate = 'Sp'
         elif achievement < 99.5:
-            baseRa = 12.0
+            baseRa = 13.0
             rate = 'SS'
         elif achievement < 100:
-            baseRa = 13.0
+            baseRa = 13.2
             rate = 'SSp'
         elif achievement < 100.5:
             baseRa = 13.5
