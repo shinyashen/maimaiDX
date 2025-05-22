@@ -2,7 +2,7 @@ import copy
 
 from .image import rounded_corners
 from .maimai_best_50 import *
-from .maimaidx_music import Music, mai
+from .maimaidx_music import Music, mai, maiLevel
 
 
 def newbestscore(song_id: str, lv: int, value: int, bestlist: List[ChartInfo]) -> int:
@@ -234,6 +234,51 @@ async def draw_music_play_data(qqid: int, music_id: str) -> Union[str, MessageSe
     except Exception as e:
         log.error(traceback.format_exc())
         msg = f'未知错误：{type(e)}\n请联系Bot管理员'
+    return msg
+
+
+async def get_music_level_data(music_id: str) -> str:
+    """
+    获取乐曲定数变化数据
+    
+    Params:
+        `music_id`: 曲目ID
+    Returns:
+        `Union[MessageSegment, str]`
+    """
+    msg = ''
+    msg_total_dict = {}
+    
+    if int(music_id) in maiLevel.total_list:
+        for diff in maiLevel.total_list[int(music_id)]:
+            cur_level = 0.0
+            msg_list = []
+            for version in level_versions:
+                if version in maiLevel.total_list[int(music_id)][diff]:
+                    new_level = maiLevel.total_list[int(music_id)][diff][version]
+                    if new_level != cur_level:
+                        if cur_level == 0.0:  # 第一个版本定数
+                            msg_list.append(f'{version}：{new_level:.1f}')
+                        else: # 定数出现变化
+                            change = new_level - cur_level
+                            msg_list.append(f'{version}：{new_level:.1f}({change:+.1f})')
+                        cur_level = new_level
+            if len(msg_list) > 1:
+                msg_total_dict[diff] = msg_list
+    
+    if len(msg_total_dict) == 0:
+        msg = f'id{music_id}没有定数变化数据'
+    else:
+        msg = f'id{music_id}定数变化数据：\n'
+        for id, item in enumerate(msg_total_dict):
+            msg += f'{item}：\n'
+            for j, i in enumerate(msg_total_dict[item]):
+                msg += i
+                if j < len(msg_total_dict[item]) - 1:
+                    msg += '\n'
+            if id < len(msg_total_dict) - 1:
+                msg += '\n'
+                        
     return msg
 
 

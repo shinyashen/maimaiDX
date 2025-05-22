@@ -120,6 +120,33 @@ platecn = {
     '辉': '輝',
     '华': '華'
 }
+level_versions = [
+    'maimai',
+    'maimai PLUS',
+    'GreeN',
+    'GreeN PLUS',
+    'ORANGE',
+    'ORANGE PLUS',
+    'PiNK',
+    'PiNK PLUS',
+    'MURASAKi',
+    'MURASAKi PLUS',
+    'MiLK',
+    'MiLK PLUS',
+    'FiNALE',
+    'maimaiでらっくす',
+    'maimaiでらっくす PLUS',
+    'Splash',
+    'Splash PLUS',
+    'UNiVERSE',
+    'UNiVERSE PLUS',
+    'FESTiVAL',
+    'FESTiVAL PLUS',
+    'BUDDiES',
+    'BUDDiES PLUS',
+    'PRiSM',
+    'PRiSM PLUS',
+]
 category: Dict[str, str] = {
     '流行&动漫': 'anime',
     '舞萌': 'maimai',

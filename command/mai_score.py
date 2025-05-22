@@ -9,13 +9,14 @@ from .. import log, sv
 from ..libraries.image import image_to_base64, text_to_image
 from ..libraries.maimai_best_50 import generate, generate40
 from ..libraries.maimaidx_music import mai
-from ..libraries.maimaidx_music_info import draw_music_play_data
+from ..libraries.maimaidx_music_info import draw_music_play_data, get_music_level_data
 from ..libraries.maimaidx_player_score import music_global_data
 
 best50  = sv.on_prefix(['b50', 'B50'])
 best40  = sv.on_prefix(['b40', 'B40'])
 minfo   = sv.on_prefix(['minfo', 'Minfo', 'MINFO', 'info', 'Info', 'INFO'])
 ginfo   = sv.on_prefix(['ginfo', 'Ginfo', 'GINFO'])
+linfo   = sv.on_prefix(['linfo', 'Linfo', 'LINFO'])
 score   = sv.on_prefix(['分数线'])
 
 
@@ -113,6 +114,34 @@ async def _(bot: NoneBot, ev: CQEvent):
     await bot.send(ev, await music_global_data(music, level_index) + info, at_sender=True)
     
     
+@linfo
+async def _(bot: NoneBot, ev: CQEvent):
+    qqid = ev.user_id
+    args: str = ev.message.extract_plain_text().strip().lower()
+    for i in ev.message:
+        if i.type == 'at' and i.data['qq'] != 'all':
+            qqid = int(i.data['qq'])
+    if not args:
+        await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
+
+    if mai.total_list.by_id(args):
+        songs = args
+    elif by_t := mai.total_list.by_title(args):
+        songs = by_t.id
+    else:
+        alias = mai.total_alias_list.by_alias(args)
+        if not alias:
+            await bot.finish(ev, '未找到曲目', at_sender=True)
+        elif len(alias) != 1:
+            msg = f'找到相同别名的曲目，请使用以下ID查询：\n'
+            for songs in alias:
+                msg += f'{songs.SongID}：{songs.Name}\n'
+            await bot.finish(ev, msg.strip(), at_sender=True)
+        else:
+            songs = str(alias[0].SongID)
+    await bot.send(ev, await get_music_level_data(songs), at_sender=True)
+
+
 @score
 async def _(bot: NoneBot, ev: CQEvent):
     args: str = ev.message.extract_plain_text().strip()

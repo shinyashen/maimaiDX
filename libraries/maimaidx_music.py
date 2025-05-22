@@ -2,6 +2,7 @@ import asyncio
 import json
 import random
 import traceback
+import requests
 from collections import Counter
 from copy import deepcopy
 from typing import Tuple
@@ -397,6 +398,52 @@ class MaiMusic:
 
 
 mai = MaiMusic()
+
+
+class MaiMusicLevel:
+    
+    total_list: MusicList
+    """曲目数据"""
+    
+    def __init__(self) -> None:
+        """封装所有曲目定数历史信息，便于更新"""
+
+    def get_music(self) -> None:
+        """获取所有曲目定数数据"""
+        try:
+            proxies = {
+                "http": "http://127.0.0.1:7897",
+                "https": "http://127.0.0.1:7897",
+            }
+            level_url = requests.get('https://github.com/gekichumai/dxrating/raw/main/packages/dxdata/dxdata.json', proxies=proxies)  # from DXRating
+            level_json = json.loads(level_url.text)
+            self.total_list = {}
+            log.info('获取曲目定数json成功')
+        
+            for music in level_json["songs"]:
+                music_id = ''
+                is_exist = False
+                for dinfo in music["sheets"]:
+                    if "internalId" in dinfo:
+                        music_id = dinfo["internalId"]
+                        is_exist = True
+                    break
+                if not is_exist:
+                    continue
+                
+                level_his = {}
+                for dinfo in music["sheets"]:
+                    if "multiverInternalLevelValue" in dinfo:
+                        level_his[dinfo["difficulty"]] = dinfo["multiverInternalLevelValue"]
+                if len(level_his) > 0:
+                    self.total_list[music_id] = level_his
+            log.info('获取曲目定数数据成功')
+        
+        except Exception as e:
+            log.error(f'获取曲目定数数据失败: {e}')
+
+
+maiLevel = MaiMusicLevel()
 
 
 class Guess:
