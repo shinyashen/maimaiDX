@@ -277,7 +277,7 @@ async def get_music_level_data(music_id: str) -> str:
                 if j < len(msg_total_dict[item]) - 1:
                     msg += '\n'
             if id < len(msg_total_dict) - 1:
-                msg += '\n'
+                msg += '\n\n'
                         
     return msg
 
