@@ -139,8 +139,7 @@ async def _(bot: NoneBot, ev: CQEvent):
             await bot.finish(ev, msg.strip(), at_sender=True)
         else:
             songs = str(alias[0].SongID)
-        msg = str(await get_music_level_data(songs))
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg))), at_sender=True)
+    await bot.send(ev, await get_music_level_data(songs), at_sender=True)
 
 
 @score

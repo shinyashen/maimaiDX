@@ -1,6 +1,6 @@
 import copy
 
-from .image import rounded_corners
+from .image import rounded_corners, text_to_image
 from .maimai_best_50 import *
 from .maimaidx_music import Music, mai, maiLevel
 
@@ -237,7 +237,7 @@ async def draw_music_play_data(qqid: int, music_id: str) -> Union[str, MessageSe
     return msg
 
 
-async def get_music_level_data(music_id: str) -> str:
+async def get_music_level_data(music_id: str) -> Union[str, MessageSegment]:
     """
     获取乐曲定数变化数据
     
@@ -278,6 +278,7 @@ async def get_music_level_data(music_id: str) -> str:
                     msg += '\n'
             if id < len(msg_total_dict) - 1:
                 msg += '\n\n'
+        msg = MessageSegment.image(image_to_base64(text_to_image(msg)))
                         
     return msg
 
