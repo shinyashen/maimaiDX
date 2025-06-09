@@ -11,7 +11,7 @@ from ..libraries.image import image_to_base64, text_to_image
 from ..libraries.maimaidx_api_data import maiApi
 from ..libraries.maimaidx_error import *
 from ..libraries.maimaidx_model import AliasStatus
-from ..libraries.maimaidx_music import guess, mai
+from ..libraries.maimaidx_music import guess, mai, get_music_cover
 from ..libraries.maimaidx_music_info import draw_music_info
 
 search_music        = sv.on_prefix(['查歌', 'search'])
@@ -21,6 +21,7 @@ search_artist       = sv.on_prefix(['曲师查歌', 'search artist'])
 search_charter      = sv.on_prefix(['谱师查歌', 'search charter'])
 search_alias_song   = sv.on_suffix(('是什么歌', '是啥歌'))
 query_chart         = sv.on_rex(re.compile(r'^id\s?([0-9]+)$', re.IGNORECASE))
+get_cover           = sv.on_prefix(['获取封面', 'cover'])
 
 
 def song_level(ds1: float, ds2: float) -> List[Tuple[str, str, float, str]]:
@@ -257,3 +258,33 @@ async def _(bot: NoneBot, ev: CQEvent):
     else:
         msg = await draw_music_info(music, ev.user_id)
     await bot.send(ev, msg)
+
+
+@get_cover
+async def _(bot: NoneBot, ev: CQEvent):
+    qqid = ev.user_id
+    args: str = ev.message.extract_plain_text().strip().lower()
+    for i in ev.message:
+        if i.type == 'at' and i.data['qq'] != 'all':
+            qqid = int(i.data['qq'])
+    if not args:
+        await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
+
+    if mai.total_list.by_id(args):
+        songs = args
+    elif by_t := mai.total_list.by_title(args):
+        songs = by_t.id
+    else:
+        alias = mai.total_alias_list.by_alias(args)
+        if not alias:
+            await bot.finish(ev, '未找到曲目', at_sender=True)
+        elif len(alias) != 1:
+            msg = f'找到相同别名的曲目，请使用以下ID查询：\n'
+            for songs in alias:
+                msg += f'{songs.SongID}：{songs.Name}\n'
+            await bot.finish(ev, msg.strip(), at_sender=True)
+        else:
+            songs = str(alias[0].SongID)
+            cover = await get_music_cover(songs)
+            msg = f'ID{songs}的封面如下：' + MessageSegment.image(image_to_base64(cover))
+    await bot.send(ev, msg, at_sender=True)

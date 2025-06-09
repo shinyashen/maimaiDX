@@ -353,6 +353,10 @@ async def update_local_alias(id: str, alias_name: str) -> bool:
         return False
 
 
+async def get_music_cover(id: str) -> Image.Image:
+    return Image.open(music_picture(id))
+
+
 class MaiMusic:
     
     total_list: MusicList
