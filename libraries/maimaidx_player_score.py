@@ -859,6 +859,7 @@ async def my_ranking_pic(qqid: int) -> Union[MessageSegment, str]:
         # 配置全局字体和参数
         plt.rcParams['font.family'] = font_name
         plt.rcParams['axes.unicode_minus'] = False
+        plt.rcParams['font.size'] = 20  # 设置全局字体大小
 
         # 定义分段
         bins = []
@@ -895,9 +896,9 @@ async def my_ranking_pic(qqid: int) -> Union[MessageSegment, str]:
 
         # 设置x轴标签
         plt.xticks(range(len(labels)), labels, rotation=45, ha='right')
-        plt.xlabel('Rating分段', fontsize=12)
-        plt.ylabel('玩家数量', fontsize=12)
-        plt.title('舞萌DX用户Rating分布', fontsize=14, fontweight='bold')
+        plt.xlabel('Rating分段', fontsize=20)
+        plt.ylabel('玩家数量', fontsize=20)
+        plt.title('舞萌DX用户Rating分布', fontsize=22, fontweight='bold')
 
         # 在柱子上显示数量
         for i, count in enumerate(hist_counts):
@@ -923,22 +924,22 @@ async def my_ranking_pic(qqid: int) -> Union[MessageSegment, str]:
 
         # 在左上角添加排名信息
         info_text = f"昵称：{user_name}\n用户Rating: {user_rating}\n总排名: {total_rank}/{total_players}"
-        plt.text(0.02, 0.98, info_text, transform=ax.transAxes, fontsize=12,
+        plt.text(0.02, 0.98, info_text, transform=ax.transAxes, fontsize=20,
                 verticalalignment='top', bbox=dict(boxstyle='round', facecolor='#E6E6FA', alpha=0.8))
 
         if user_bin_index is not None:
             # 获取用户所在分数段的所有分数
             bin_ratings = [r for r in ratings if bins[user_bin_index] <= r < bins[user_bin_index+1]]
-            bin_ratings_sorted = sorted(bin_ratings)
+            bin_ratings_sorted = sorted(bin_ratings, reverse=True)
 
-            # 计算用户在分数段内的相对排名（0-1之间，0为最低，1为最高）
+            # 计算用户在分数段内的相对排名（0-1之间，1为最低，0为最高）
             if len(bin_ratings_sorted) > 1:
                 user_rank = bin_ratings_sorted.index(user_rating) / (len(bin_ratings_sorted) - 1)
             else:
                 user_rank = 0.5  # 如果只有一个人，放在中间
 
             # 计算点的位置
-            x_pos = user_bin_index - bar_width/2 + user_rank * bar_width
+            x_pos = user_bin_index + bar_width/2 - user_rank * bar_width
             y_pos = hist_counts[user_bin_index]
 
             # 在对应柱子上标记用户位置
@@ -948,7 +949,7 @@ async def my_ranking_pic(qqid: int) -> Union[MessageSegment, str]:
 
         # 美化图表
         plt.grid(True, alpha=0.3)
-        plt.legend()
+        plt.legend(fontsize=20)
         plt.tight_layout()
 
         # 设置y轴格式
