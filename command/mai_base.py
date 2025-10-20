@@ -13,7 +13,7 @@ from ..libraries.maimaidx_api_data import maiApi
 from ..libraries.maimaidx_error import *
 from ..libraries.maimaidx_music import mai
 from ..libraries.maimaidx_music_info import draw_music_info
-from ..libraries.maimaidx_player_score import rating_ranking_data
+from ..libraries.maimaidx_player_score import rating_ranking_data, my_ranking_pic
 from ..libraries.tool import qqhash
 
 update_data         = sv.on_fullmatch('更新maimai数据')
@@ -24,6 +24,7 @@ mai_what            = sv.on_rex(r'.*mai.*什么(.+)?')
 random_song         = sv.on_rex(r'^[来随给]个((?:dx|sd|标准))?([绿黄红紫白]?)([0-9]+\+?)$')
 rating_ranking      = sv.on_prefix(['查看排名', '查看排行'])
 my_rating_ranking   = sv.on_fullmatch('我的排名')
+my_rating_pic       = sv.on_fullmatch('我有多菜')
 data_update_daily   = sv.scheduled_job('cron', hour='4')
 
 
@@ -175,6 +176,11 @@ async def _(bot: NoneBot, ev: CQEvent):
     except (UserNotFoundError, UserNotExistsError, UserDisabledQueryError) as e:
         await bot.finish(ev, str(e), at_sender=True)
 
+
+@my_rating_pic
+async def _(bot: NoneBot, ev: CQEvent):
+    msg = await my_ranking_pic(ev.user_id)
+    await bot.send(ev, msg, at_sender=True)
 
 
 @data_update_daily

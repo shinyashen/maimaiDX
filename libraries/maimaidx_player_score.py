@@ -5,6 +5,7 @@ from typing import Callable
 
 import pyecharts.options as opts
 from pyecharts.charts import Pie
+from matplotlib.ticker import FuncFormatter
 
 from hoshino.typing import MessageSegment
 
@@ -826,4 +827,134 @@ async def rating_ranking_data(name: str, page: int) -> Union[MessageSegment, str
     except Exception as e:
         log.error(traceback.format_exc())
         data = f'未知错误：{type(e)}\n请联系Bot管理员'
+    return data
+
+
+async def my_ranking_pic(qqid: int) -> Union[MessageSegment, str]:
+    """
+    绘制舞萌DX用户rating分布图
+
+    Parameters:
+        `qqid`: 用户QQ
+    Returns:
+        `Union[MessageSegment, str]`
+    """
+    try:
+        user = await maiApi.query_user_b50(qqid=qqid)
+        rank_data = await maiApi.rating_ranking()
+        ratings = [r.ra for r in rank_data]
+
+        for record in rank_data:
+            if record.username == user.username:
+                user_rating = record.ra
+                user_name = record.username
+                break
+
+        plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
+        plt.rcParams['axes.unicode_minus'] = False
+
+        # 定义分段
+        bins = []
+        labels = []
+
+        # 0-8000合并
+        bins.append(0)
+        labels.append("0-8000")
+
+        # 小于15000的部分，每1000一段
+        for i in range(8000, 15000, 1000):
+            bins.append(i)
+            labels.append(f"{i}-{i+1000}")
+
+        # 大于15000的部分
+        bins.extend([15000, 15500, 16000, float('inf')])
+        labels.extend(["15000-15500", "15500-16000", ">16000"])
+
+        # 统计每个分数段的人数
+        hist_counts, hist_bins = np.histogram(ratings, bins=bins)
+
+        # 创建图表
+        plt.figure(figsize=(14, 8))
+        ax = plt.gca()
+        bar_width = 0.9
+        purple_colors = plt.cm.Purples(np.linspace(0.4, 0.9, len(hist_counts)))  # 创建紫色渐变颜色
+
+        # 绘制柱状图
+        bars = plt.bar(range(len(hist_counts)), hist_counts,
+                    width=bar_width,  # 可配置的柱子宽度
+                    color=purple_colors,
+                    edgecolor='none',  # 无边框
+                    alpha=0.8)
+
+        # 设置x轴标签
+        plt.xticks(range(len(labels)), labels, rotation=45, ha='right')
+        plt.xlabel('Rating分段', fontsize=12)
+        plt.ylabel('玩家数量', fontsize=12)
+        plt.title('舞萌DX用户Rating分布', fontsize=14, fontweight='bold')
+
+        # 在柱子上显示数量
+        for i, count in enumerate(hist_counts):
+            if count > 0:
+                plt.text(i, count + max(hist_counts)*0.01, str(count),
+                        ha='center', va='bottom', fontweight='bold')
+
+        # 找到用户所在的分数段
+        user_bin_index = None
+        for i in range(len(bins)-1):
+            if bins[i] <= user_rating < bins[i+1]:
+                user_bin_index = i
+                break
+
+        # 如果用户rating在最高分段
+        if user_rating >= bins[-2]:
+            user_bin_index = len(bins) - 2
+
+        # 计算用户总排名
+        sorted_ratings = sorted(ratings, reverse=True)
+        total_rank = sorted_ratings.index(user_rating) + 1  # 排名从1开始
+        total_players = len(ratings)
+
+        # 在左上角添加排名信息
+        info_text = f"昵称：{user_name}\n用户Rating: {user_rating}\n总排名: {total_rank}/{total_players}"
+        plt.text(0.02, 0.98, info_text, transform=ax.transAxes, fontsize=12,
+                verticalalignment='top', bbox=dict(boxstyle='round', facecolor='#E6E6FA', alpha=0.8))
+
+        if user_bin_index is not None:
+            # 获取用户所在分数段的所有分数
+            bin_ratings = [r for r in ratings if bins[user_bin_index] <= r < bins[user_bin_index+1]]
+            bin_ratings_sorted = sorted(bin_ratings)
+
+            # 计算用户在分数段内的相对排名（0-1之间，0为最低，1为最高）
+            if len(bin_ratings_sorted) > 1:
+                user_rank = bin_ratings_sorted.index(user_rating) / (len(bin_ratings_sorted) - 1)
+            else:
+                user_rank = 0.5  # 如果只有一个人，放在中间
+
+            # 计算点的位置
+            x_pos = user_bin_index - bar_width/2 + user_rank * bar_width
+            y_pos = hist_counts[user_bin_index]
+
+            # 在对应柱子上标记用户位置
+            plt.plot(x_pos, y_pos, 'ro', markersize=5, markeredgecolor='black',
+            markerfacecolor='red', markeredgewidth=1,
+            label=f'用户位置 (Rating: {user_rating})')
+
+        # 美化图表
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        plt.tight_layout()
+
+        # 设置y轴格式
+        def format_y_axis(x, pos):
+            if x >= 1000:
+                return f'{x/1000:.0f}k'
+            else:
+                return f'{x:.0f}'
+
+        ax.yaxis.set_major_formatter(FuncFormatter(format_y_axis))
+
+        data = MessageSegment.image(image_to_base64(plt_to_image(plt)))
+    except Exception as e:
+        log.error(traceback.format_exc())
+        return f'未知错误：{type(e)}\n请联系Bot管理员'
     return data

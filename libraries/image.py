@@ -3,6 +3,7 @@ from io import BytesIO
 from typing import Tuple, Union
 
 import numpy as np
+import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from .. import SHANGGUMONO, Path, coverdir
@@ -148,3 +149,43 @@ def image_to_base64(img: Image.Image, format='PNG') -> str:
     byte_data = output_buffer.getvalue()
     base64_str = base64.b64encode(byte_data).decode()
     return 'base64://' + base64_str
+
+
+def plt_to_image(plt_obj, width, aspect_ratio=4/3, dpi=100) -> Image.Image:
+    """
+    根据宽高比生成图像
+
+    Params:
+        `plt_obj`: matplotlib pyplot对象
+        `width`: 目标宽度（像素）
+        `aspect_ratio`: 宽高比（宽度/高度）
+        `dpi`: 分辨率
+    Returns:
+        `PIL.Image.Image`
+    """
+    # 获取当前图形
+    fig = plt_obj.gcf()
+
+    # 计算目标高度
+    height = int(width / aspect_ratio)
+
+    # 设置图形尺寸
+    inches_width = width / dpi
+    inches_height = height / dpi
+    fig.set_size_inches(inches_width, inches_height)
+
+    # 调整布局
+    plt_obj.tight_layout()
+
+    # 保存到缓冲区
+    buf = BytesIO()
+    plt_obj.savefig(buf, format='png', dpi=dpi,
+                    bbox_inches='tight', pad_inches=0.1,
+                    facecolor='white')
+    buf.seek(0)
+
+    # 创建PIL Image
+    img = Image.open(buf)
+    buf.close()
+
+    return img
