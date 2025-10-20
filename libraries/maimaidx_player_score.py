@@ -852,9 +852,9 @@ async def my_ranking_pic(qqid: int) -> Union[MessageSegment, str]:
                 break
 
         # 将字体文件添加到Matplotlib的字体管理器
-        font_manager.fontManager.addfont(SIYUAN)
+        font_manager.fontManager.addfont(str(SIYUAN))
         # 获取字体的名称
-        font_name = font_manager.FontProperties(fname=SIYUAN).get_name()
+        font_name = font_manager.FontProperties(fname=str(SIYUAN)).get_name()
 
         # 配置全局字体和参数
         plt.rcParams['font.family'] = font_name
