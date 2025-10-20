@@ -174,6 +174,5 @@ def fig_to_image(fig, width, aspect_ratio=4/3, dpi=100) -> Image.Image:
                 bbox_inches='tight', pad_inches=0.1)
     buf.seek(0)
     img = Image.open(buf)
-    buf.close()
 
     return img
