@@ -953,7 +953,7 @@ async def my_ranking_pic(qqid: int) -> Union[MessageSegment, str]:
 
         ax.yaxis.set_major_formatter(FuncFormatter(format_y_axis))
 
-        data = MessageSegment.image(image_to_base64(plt_to_image(plt)))
+        data = MessageSegment.image(image_to_base64(plt_to_image(plt, 1200)))
     except Exception as e:
         log.error(traceback.format_exc())
         return f'未知错误：{type(e)}\n请联系Bot管理员'
