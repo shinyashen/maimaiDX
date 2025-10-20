@@ -937,7 +937,7 @@ async def my_ranking_pic(qqid: int) -> Union[MessageSegment, str]:
             # 在对应柱子上标记用户位置
             plt.plot(x_pos, y_pos, 'ro', markersize=5, markeredgecolor='black',
             markerfacecolor='red', markeredgewidth=1,
-            label=f'用户位置 (Rating: {user_rating})')
+            label=f'{user_name} ({bin_ratings_sorted.index(user_rating)+1}/{len(bin_ratings_sorted)})')
 
         # 美化图表
         plt.grid(True, alpha=0.3)
