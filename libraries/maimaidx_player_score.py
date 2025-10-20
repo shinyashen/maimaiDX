@@ -5,6 +5,7 @@ from typing import Callable
 
 import pyecharts.options as opts
 from pyecharts.charts import Pie
+from matplotlib import font_manager
 from matplotlib.ticker import FuncFormatter
 
 from hoshino.typing import MessageSegment
@@ -850,7 +851,13 @@ async def my_ranking_pic(qqid: int) -> Union[MessageSegment, str]:
                 user_name = record.username
                 break
 
-        plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
+        # 将字体文件添加到Matplotlib的字体管理器
+        font_manager.fontManager.addfont(SIYUAN)
+        # 获取字体的名称
+        font_name = font_manager.FontProperties(fname=SIYUAN).get_name()
+
+        # 配置全局字体和参数
+        plt.rcParams['font.family'] = font_name
         plt.rcParams['axes.unicode_minus'] = False
 
         # 定义分段
@@ -953,7 +960,7 @@ async def my_ranking_pic(qqid: int) -> Union[MessageSegment, str]:
 
         ax.yaxis.set_major_formatter(FuncFormatter(format_y_axis))
 
-        data = MessageSegment.image(image_to_base64(fig_to_image(plt.gcf(), 1200)))
+        data = MessageSegment.image(image_to_base64(fig_to_image(plt.gcf(), 1400, 8/7)))
     except Exception as e:
         log.error(traceback.format_exc())
         return f'未知错误：{type(e)}\n请联系Bot管理员'
