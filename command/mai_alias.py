@@ -260,6 +260,7 @@ async def push_alias(push: PushAliasStatus):
         await mai.get_music_alias()
         return
     group_list = await bot.get_group_list()
+    group_ids = list({g['group_id'] for g in group_list})
     message = ''
     if push.Type == 'Apply':
         message = dedent(f'''\
@@ -281,8 +282,7 @@ async def push_alias(push: PushAliasStatus):
         ''').strip() + await draw_music_info(music)
     
     
-    for group in group_list:
-        gid: int = group['group_id']
+    for gid in group_ids:
         if gid in alias.push.disable:
             continue
         try:
@@ -295,33 +295,29 @@ async def push_alias(push: PushAliasStatus):
 async def ws_alias_server():
     log.info('正在连接别名推送服务器')
     if maiApi.config.maimaidxaliasproxy:
-        wsapi = 'proxy.yuzuchan.xyz/maimaidxaliases'
+        wsapi = 'proxy.yuzuchan.site/maimaidxaliases'
     else:
         wsapi = 'www.yuzuchan.moe/api/maimaidx'
     while True:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.ws_connect(f'wss://{wsapi}/ws/{UUID}') as ws:
-                    try:
-                        log.info('别名推送服务器连接成功')
-                        while True:
-                            data = await ws.receive_str()
-                            if data == 'Hello':
-                                log.info('别名推送服务器正常运行')
-                            try:
-                                newdata = json.loads(data)
-                                status = PushAliasStatus.model_validate(newdata)
-                                await asyncio.create_task(push_alias(status))
-                            except:
-                                continue
-                    except aiohttp.WSServerHandshakeError:
-                        log.warning('别名推送服务器已断开连接，将在1分钟后重新尝试连接')
-                        await asyncio.sleep(60)
-                    except aiohttp.WebSocketError:
-                        log.error('别名推送服务器连接失败，将在1分钟后重试')
-                        await asyncio.sleep(60)
-                        log.info('正在尝试重新连接别名推送服务器')
-        except:
-            log.error('别名推送服务器连接失败，将在1分钟后重试')
+                    log.info('别名推送服务器连接成功')
+                    while True:
+                        data = await ws.receive_str()
+                        if data == 'Hello':
+                            log.info('别名推送服务器正常运行')
+                        try:
+                            newdata = json.loads(data)
+                            status = PushAliasStatus.model_validate(newdata)
+                            await push_alias(status)
+                        except:
+                            continue
+        except (aiohttp.WSServerHandshakeError, aiohttp.WebSocketError) as e:
+            log.warning(f'连接断开或异常: {e}，将在 60 秒后重连')
             await asyncio.sleep(60)
-            log.info('正在尝试重新连接别名推送服务器')
+            continue
+        except Exception as e:
+            log.error(f'别名推送服务器连接失败: {e}，将在 60 秒后重试')
+            await asyncio.sleep(60)
+            continue
