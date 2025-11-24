@@ -6,3 +6,5 @@ pyecharts>=2.0.4
 playwright>=1.52.0
 numpy>=1.24.4
 matplotlib
+dotenv
+pandas

@@ -6,8 +6,11 @@ import requests
 from collections import Counter, defaultdict
 from copy import deepcopy
 from typing import Tuple
+from dotenv import dotenv_values
+from io import StringIO
 
 import numpy as np
+import pandas as pd
 from PIL import Image
 
 from .. import *
@@ -427,6 +430,60 @@ class MaiMusicLevel:
 
 
 maiLevel = MaiMusicLevel()
+
+
+class MaiMusicTag:
+    
+    class TagsQuery:
+        
+        def __init__(self, json_file):
+            self.df = pd.read_json(json_file).set_index(['song_id', 'sheet_type', 'sheet_difficulty'])
+            self.df.sort_index(inplace=True)
+        
+        def get_tag_ids(self, song_id, sheet_type, sheet_difficulty):
+            try:
+                result = self.df.loc[(song_id, sheet_type, sheet_difficulty), 'tag_id']
+                if isinstance(result, pd.Series):
+                    return result.tolist()
+                else:
+                    return [result]
+            except KeyError:
+                return []
+    
+    tag_list: Dict[int, str] = {}
+    song_tag_list: TagsQuery
+    """曲目标签数据"""
+    
+    def __init__(self) -> None:
+        """封装所有曲目标签信息，便于更新"""
+
+    def get_music(self) -> None:
+        """获取所有曲目标签数据"""
+        try:
+            proxies = {
+                "http": "http://127.0.0.1:7897",
+                "https": "http://127.0.0.1:7897",
+            }
+            key_url = requests.get('https://github.com/gekichumai/dxrating/raw/main/apps/web/.env', proxies=proxies)  # from DXRating
+            key_config = dotenv_values(stream=StringIO(key_url.text))
+            api = key_config['VITE_SUPABASE_URL'] + r'/rest/v1'
+            anon_key = key_config['VITE_SUPABASE_ANON_KEY']
+            headers = {
+                "Authorization": f"Bearer {anon_key}",
+                "apikey": f"{anon_key}",
+                "Content-Type": r"application/json; charset=utf-8"
+            }
+            taglist_url = requests.get(api + r"/tags", headers=headers)
+            self.tag_list = {item["id"]: item["localized_name"]["zh-Hans"] for item in taglist_url.json()}
+            tag_url = requests.get(api + r"/tag_songs", headers=headers)
+            self.song_tag_list = self.TagsQuery(StringIO(json.dumps(tag_url.json(), ensure_ascii=False)))
+            log.info('获取曲目标签数据成功')
+        
+        except Exception as e:
+            log.error(f'获取曲目标签数据失败: {e}')
+    
+
+maiTag = MaiMusicTag()
 
 
 class Guess:

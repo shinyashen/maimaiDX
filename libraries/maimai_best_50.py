@@ -1,18 +1,21 @@
 import math
 import traceback
+import matplotlib.pyplot as plt
 from io import BytesIO
+from collections import Counter
 from typing import Optional, Tuple, Union, overload
+from matplotlib import font_manager
 
 from PIL import Image, ImageDraw
 
 from hoshino.typing import MessageSegment
 
 from .. import *
-from .image import DrawText, image_to_base64, music_picture
+from .image import DrawText, image_to_base64, music_picture, fig_to_image
 from .maimaidx_api_data import maiApi
 from .maimaidx_error import *
 from .maimaidx_model import ChartInfo, PlayInfoDefault, PlayInfoDev, UserInfo
-from .maimaidx_music import mai
+from .maimaidx_music import mai, maiTag
 
 
 class ScoreBaseImage:
@@ -637,6 +640,162 @@ async def generate40(qqid: Optional[int] = None, username: Optional[str] = None)
         draw_best = DrawBest40(userinfo, qqid)
 
         msg = MessageSegment.image(image_to_base64(await draw_best.draw()))
+    except (UserNotFoundError, UserNotExistsError, UserDisabledQueryError) as e:
+        msg = str(e)
+    except Exception as e:
+        log.error(traceback.format_exc())
+        msg = f'未知错误：{type(e)}\n请联系Bot管理员'
+    return msg
+
+async def generateTags(qqid: Optional[int] = None, username: Optional[str] = None) -> Union[MessageSegment, str]:
+    """
+    生成b50tags
+    
+    Params:
+        `qqid`: QQ号
+        `username`: 用户名
+        `icon`: 头像
+    Returns:
+        `Union[MessageSegment, str]`
+    """
+    level_names = ['basic', 'advanced', 'expert', 'master', 'remaster']
+    try:
+        if username:
+            qqid = None
+        userinfo = await maiApi.query_user_b50(qqid=qqid, username=username)
+        tag_list = []
+        for chart in userinfo.charts.sd + userinfo.charts.dx:
+            tag_list += maiTag.song_tag_list.get_tag_ids(chart.title, chart.type.lower(), level_names[chart.level_index])
+        count = dict(Counter(tag_list))
+        
+        # 处理数据
+        sorted_items = sorted([(maiTag.tag_list[key], value) for key, value in count.items()], key=lambda x: x[1], reverse=True)
+        labels = [item[0] for item in sorted_items]
+        sizes = [item[1] for item in sorted_items]
+        percentages = [size / sum(sizes) * 100 for size in sizes]
+
+        # 将字体文件添加到Matplotlib的字体管理器
+        font_manager.fontManager.addfont(str(SIYUAN))
+        # 获取字体的名称
+        font_name = font_manager.FontProperties(fname=str(SIYUAN)).get_name()
+
+        # 配置全局字体和参数
+        plt.rcParams['font.family'] = font_name
+        plt.rcParams['axes.unicode_minus'] = False
+        plt.rcParams['font.size'] = 20  # 设置全局字体大小
+        
+        # 颜色配置
+        def create_pastel_colors(n):
+            """创建柔和的配色方案"""
+            base_colors = [
+                '#8ECAE6', '#219EBC', "#1D7793",  # 蓝色系
+                '#FFB4A2', '#E5989B', '#B5838D',  # 粉色系
+                "#C5E777", "#B6C96D", "#6C943D",  # 绿色系
+                '#E9C46A', '#F4A261', '#E76F51',  # 橙色系
+                '#CDB4DB', '#FFC8DD', '#FFAFCC'   # 紫色系
+            ]
+            # 如果需要的颜色比基础颜色多，循环使用
+            if n <= len(base_colors):
+                return base_colors[:n]
+            else:
+                repeat_count = (n // len(base_colors)) + 1
+                return (base_colors * repeat_count)[:n]
+
+        colors = create_pastel_colors(len(sizes))
+
+        # 分离大比例和小比例部分
+        threshold = 4  # 4%阈值
+        main_labels = []
+        main_sizes = []
+        main_colors = []
+        small_labels = []
+        small_sizes = []
+        small_percentages = []
+        small_colors = []
+
+        for i, (label, size, pct, color) in enumerate(zip(labels, sizes, percentages, colors)):
+            if pct >= threshold:
+                main_labels.append(f"{label} ({size})")
+                main_sizes.append(size)
+                main_colors.append(color)
+            else:
+                small_labels.append(label)
+                small_sizes.append(size)
+                small_percentages.append(pct)
+                small_colors.append(color)
+
+        # 合并所有数据用于绘制饼图
+        all_sizes = main_sizes + small_sizes
+        all_colors = main_colors + small_colors
+
+        # 创建标签 - 小比例部分使用空标签
+        all_labels = main_labels + [""] * len(small_sizes)
+
+        # 创建百分比显示函数 - 小比例部分不显示百分比
+        def make_autopct(values):
+            def my_autopct(pct):
+                # 找到当前百分比对应的索引
+                total = sum(values)
+                index = int(round(pct * total / 100.0))
+                # 检查这个索引是否在小比例部分
+                if index in small_sizes and pct < threshold:
+                    return ''
+                else:
+                    return f'{pct:.1f}%'
+            return my_autopct
+        
+        # 创建图表 - 增加高度为小比例部分留出空间
+        dxrating_text = '数据来源于dxrating.net\n不是所有歌曲都有标签，仅供娱乐'
+        if len(small_sizes): # 有小比例部分，创建两个子图
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 14), gridspec_kw={'height_ratios': [3, 1]})
+            ax2.text(0.98, 0.02, dxrating_text, transform=ax2.transAxes, fontsize=10, color='gray', horizontalalignment='right', verticalalignment='bottom')
+        else:
+            # 没有小比例部分，只创建一个子图
+            fig, ax1 = plt.subplots(1, 1, figsize=(14, 10))
+            ax1.text(0.98, 0.02, dxrating_text, transform=ax1.transAxes, fontsize=10, color='gray', horizontalalignment='right', verticalalignment='bottom')
+        
+        # 绘制主饼图
+        wedges, texts, autotexts = ax1.pie(all_sizes, labels=all_labels, autopct=make_autopct(all_sizes), startangle=90, colors=all_colors, textprops={'fontsize': 20}, pctdistance=0.8, labeldistance=1.05)
+
+        # 美化图表
+        ax1.set_title('谱面类型分布', fontsize=25, fontweight='bold', pad=20)
+        ax1.axis('equal')
+
+        # 调整文字大小和样式
+        for autotext in autotexts:
+            autotext.set_color('#2F2F2F')
+            autotext.set_fontweight('bold')
+
+        # 处理小比例部分 - 在第二个子图中显示
+        if small_sizes:
+            # 隐藏第二个子图的坐标轴
+            ax2.axis('off')
+            
+            # 创建小比例部分的说明文本
+            small_texts = []
+            for i, (label, size, pct, color) in enumerate(zip(small_labels, small_sizes, small_percentages, small_colors)):
+                # 创建颜色标记
+                color_marker = plt.Rectangle((0, 0), 1, 1, fc=color)
+                # 创建文本
+                text = f"{label} ({size}, {pct:.1f}%)"
+                small_texts.append((color_marker, text))
+            
+            # 计算每行的项目数
+            items_per_row = min(4, len(small_texts))
+            
+            # 创建图例
+            legend_elements = [plt.Rectangle((0, 0), 1, 1, fc=color, label=f"{label} ({size}, {pct:.1f}%)") 
+                            for label, size, pct, color in zip(small_labels, small_sizes, small_percentages, small_colors)]
+            
+            # 在第二个子图中添加图例
+            ax2.legend(handles=legend_elements, title="小比例谱面类型", loc="center", ncol=items_per_row, fontsize=14, frameon=True)
+
+        # 美化图表
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout(rect=[0, 0.1, 1, 0.95])
+        
+        msg = MessageSegment.image(image_to_base64(fig_to_image(plt.gcf(), 1400, 7/6)))
+        
     except (UserNotFoundError, UserNotExistsError, UserDisabledQueryError) as e:
         msg = str(e)
     except Exception as e:

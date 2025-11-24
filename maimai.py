@@ -3,7 +3,7 @@ from nonebot import on_startup
 from .command import *
 from .libraries.maimai_best_50 import ScoreBaseImage
 from .libraries.maimaidx_api_data import maiApi
-from .libraries.maimaidx_music import mai, maiLevel
+from .libraries.maimaidx_music import mai, maiLevel, maiTag
 
 
 @on_startup
@@ -30,6 +30,8 @@ async def _():
     mai.guess()
     log.info('正在获取maimai所有曲目难度历史信息')
     maiLevel.get_music()
+    log.info('正在获取maimai所有曲目标签信息')
+    maiTag.get_music()
     log.info('maimai数据获取完成')
     
     if maiApi.config.saveinmem:
