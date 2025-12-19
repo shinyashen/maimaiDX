@@ -141,17 +141,48 @@ arcade = ArcadeData()
 
 async def download_arcade_info(save: bool = True) -> ArcadeList:
     try:
-        async with aiohttp.request('GET', 'http://wc.wahlap.net/maidx/rest/location', timeout=aiohttp.ClientTimeout(total=30)) as req:
+        async with aiohttp.request('GET', 'https://wc.wahlap.net/maidx/rest/location', timeout=aiohttp.ClientTimeout(total=30)) as req:
             if req.status == 200:
                 data = await req.json()
             else:
                 data = None
                 loga.error('获取机厅信息失败')
-        arcadelist = ArcadeList()
-        if data is not None:
-            if not arcade.arcades:
-                for num in range(len(data)):
-                    _arc = data[num]
+    except Exception:
+        data = None
+        loga.error(f'Error: {traceback.format_exc()}')
+        loga.error('获取机厅信息失败')
+    
+    arcadelist = ArcadeList()
+    if data is not None:
+        if not arcade.arcades:
+            for num in range(len(data)):
+                _arc = data[num]
+                arcade_dict = {
+                    'name': _arc['arcadeName'],
+                    'location': _arc['address'],
+                    'province': _arc['province'],
+                    'mall': _arc['mall'],
+                    'num': _arc['machineCount'],
+                    'id': _arc['id'],
+                    'alias': [],
+                    'group': [],
+                    'person': 0,
+                    'by': '',
+                    'time': ''
+                }
+                arcadelist.append(Arcade.model_validate(arcade_dict))
+        else:
+            for num in range(len(data)):
+                _arc = data[num]
+                arcade_dict = arcade.get_by_id(_arc['id'])
+                if arcade_dict is not None:
+                    arcade_dict['name'] = _arc['arcadeName']
+                    arcade_dict['location'] = _arc['address']
+                    arcade_dict['province'] = _arc['province']
+                    arcade_dict['mall'] = _arc['mall']
+                    arcade_dict['num'] = _arc['machineCount']
+                    arcade_dict['id'] = _arc['id']
+                else:
                     arcade_dict = {
                         'name': _arc['arcadeName'],
                         'location': _arc['address'],
@@ -165,46 +196,17 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
                         'by': '',
                         'time': ''
                     }
-                    arcadelist.append(Arcade.model_validate(arcade_dict))
-            else:
-                for num in range(len(data)):
-                    _arc = data[num]
-                    arcade_dict = arcade.get_by_id(_arc['id'])
-                    if arcade_dict is not None:
-                        arcade_dict['name'] = _arc['arcadeName']
-                        arcade_dict['location'] = _arc['address']
-                        arcade_dict['province'] = _arc['province']
-                        arcade_dict['mall'] = _arc['mall']
-                        arcade_dict['num'] = _arc['machineCount']
-                        arcade_dict['id'] = _arc['id']
-                    else:
-                        arcade_dict = {
-                            'name': _arc['arcadeName'],
-                            'location': _arc['address'],
-                            'province': _arc['province'],
-                            'mall': _arc['mall'],
-                            'num': _arc['machineCount'],
-                            'id': _arc['id'],
-                            'alias': [],
-                            'group': [],
-                            'person': 0,
-                            'by': '',
-                            'time': ''
-                        }
-                        arcade.arcades.insert(num, arcade_dict)
-                    arcadelist.append(Arcade.model_validate(arcade_dict))
-            for n in arcade.arcades:
-                if int(n['id']) >= 10000:
-                    arcadelist.append(Arcade.model_validate(n))
-        else:
-            for _a in arcade.arcades:
-                arcadelist.append(Arcade.model_validate(_a))
-        if save:
-            await writefile(arcades_json, [_.model_dump() for _ in arcadelist])
-        return arcadelist
-    except Exception:
-        loga.error(f'Error: {traceback.format_exc()}')
-        loga.error('获取机厅信息失败')
+                    arcade.arcades.insert(num, arcade_dict)
+                arcadelist.append(Arcade.model_validate(arcade_dict))
+        for n in arcade.arcades:
+            if int(n['id']) >= 10000:
+                arcadelist.append(Arcade.model_validate(n))
+    else:
+        for _a in arcade.arcades:
+            arcadelist.append(Arcade.model_validate(_a))
+    if save:
+        await writefile(arcades_json, [_.model_dump() for _ in arcadelist])
+    return arcadelist
 
 
 async def updata_arcade(arcadeName: str, num: str):
