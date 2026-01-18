@@ -28,8 +28,8 @@
    
 2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到插件根目录并覆盖，即 `maimaiDX/static`
 
-   - [私人云盘](https://cloud.yuzuchan.moe/f/1bUn/Resource.7z)
-   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/EdGUKRSo-VpHjT2noa_9EroBdFZci-tqWjVZzKZRTEeZkw?e=a1TM40)
+   - [Cloudreve私人云盘](https://cloud.yuzuchan.moe/f/nXt6/Resource.7z)
+   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/IQDRlCkUqPlaR409p6Gv_RK6AZ-dJaBtbgZoJMvFI4IJiYw?e=eu5f2h)
 
 3. 配置可选项，请修改 `maimaiDX/static/config.json` 文件
 
