@@ -398,8 +398,8 @@ class MaiMusicLevel:
         """获取所有曲目定数数据"""
         try:
             proxies = {
-                "http": "http://127.0.0.1:7897",
-                "https": "http://127.0.0.1:7897",
+                "http": "http://127.0.0.1:7796",
+                "https": "http://127.0.0.1:7796",
             }
             level_url = requests.get('https://github.com/gekichumai/dxrating/raw/main/packages/dxdata/dxdata.json', proxies=proxies)  # from DXRating
             level_json = json.loads(level_url.text)
@@ -461,8 +461,8 @@ class MaiMusicTag:
         """获取所有曲目标签数据"""
         try:
             proxies = {
-                "http": "http://127.0.0.1:7897",
-                "https": "http://127.0.0.1:7897",
+                "http": "http://127.0.0.1:7796",
+                "https": "http://127.0.0.1:7796",
             }
             key_url = requests.get('https://github.com/gekichumai/dxrating/raw/main/apps/web/.env', proxies=proxies)  # from DXRating
             key_config = dotenv_values(stream=StringIO(key_url.text))
