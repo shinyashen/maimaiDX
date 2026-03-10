@@ -460,14 +460,9 @@ class MaiMusicTag:
     def get_music(self) -> None:
         """获取所有曲目标签数据"""
         try:
-            proxies = {
-                "http": "http://127.0.0.1:7796",
-                "https": "http://127.0.0.1:7796",
-            }
-            key_url = requests.get('https://github.com/gekichumai/dxrating/raw/main/apps/web/.env', proxies=proxies)  # from DXRating
-            key_config = dotenv_values(stream=StringIO(key_url.text))
-            api = key_config['VITE_SUPABASE_URL'] + r'/rest/v1'
-            anon_key = key_config['VITE_SUPABASE_ANON_KEY']
+            # 硬编码
+            api = "https://derrakuma.dxrating.net/rest/v1"
+            anon_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxidHBubWRmZnVpbWlra3Nydm5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDYwMzMxNzAsImV4cCI6MjAyMTYwOTE3MH0.rrzOisCZGz2gkp-yh61-_HDY7YqL3lTc4XsOPzuAVDU"
             headers = {
                 "Authorization": f"Bearer {anon_key}",
                 "apikey": f"{anon_key}",

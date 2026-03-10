@@ -214,13 +214,31 @@ class DrawBest(ScoreBaseImage):
             num = '07'
         elif self.Rating < 14000:
             num = '08'
-        elif self.Rating < 14500:
+        elif self.Rating < 14250:
             num = '09'
-        elif self.Rating < 15000:
+        elif self.Rating < 14500:
             num = '10'
-        else:
+        elif self.Rating < 14750:
             num = '11'
-        return f'UI_CMN_DXRating_{num}.png'
+        elif self.Rating < 15000:
+            num = '12'
+        elif self.Rating < 15250:
+            num = '13'
+        elif self.Rating < 15500:
+            num = '14'
+        elif self.Rating < 15750:
+            num = '15'
+        elif self.Rating < 16000:
+            num = '16'
+        elif self.Rating < 16250:
+            num = '17'
+        elif self.Rating < 16500:
+            num = '18'
+        elif self.Rating < 16750:
+            num = '19'
+        else:
+            num = '20'
+        return f'UI_CMN_DXRating_{num}_CiRP.png'
 
     def _findMatchLevel(self) -> str:
         """
