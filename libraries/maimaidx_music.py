@@ -460,18 +460,11 @@ class MaiMusicTag:
     def get_music(self) -> None:
         """获取所有曲目标签数据"""
         try:
-            # 硬编码
-            api = "https://derrakuma.dxrating.net/rest/v1"
-            anon_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxidHBubWRmZnVpbWlra3Nydm5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDYwMzMxNzAsImV4cCI6MjAyMTYwOTE3MH0.rrzOisCZGz2gkp-yh61-_HDY7YqL3lTc4XsOPzuAVDU"
-            headers = {
-                "Authorization": f"Bearer {anon_key}",
-                "apikey": f"{anon_key}",
-                "Content-Type": r"application/json; charset=utf-8"
-            }
-            taglist_url = requests.get(api + r"/tags", headers=headers)
-            self.tag_list = {item["id"]: item["localized_name"]["zh-Hans"] for item in taglist_url.json()}
-            tag_url = requests.get(api + r"/tag_songs", headers=headers)
-            self.song_tag_list = self.TagsQuery(StringIO(json.dumps(tag_url.json(), ensure_ascii=False)))
+            api = "https://miruku.dxrating.net/api/v1"
+            response = requests.get(api + r"/tags")
+            data = response.json()
+            self.tag_list = {item["id"]: item["localized_name"]["zh-Hans"] for item in data["tags"]}
+            self.song_tag_list = self.TagsQuery(StringIO(json.dumps(data["tagSongs"], ensure_ascii=False)))
             log.info('获取曲目标签数据成功')
         
         except Exception as e:
