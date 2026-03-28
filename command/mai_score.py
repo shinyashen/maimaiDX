@@ -1,4 +1,5 @@
 import re
+import math
 from textwrap import dedent
 
 from nonebot import NoneBot
@@ -18,6 +19,7 @@ best40  = sv.on_prefix(['b40', 'B40'])
 minfo   = sv.on_prefix(['minfo', 'Minfo', 'MINFO', 'info', 'Info', 'INFO'])
 ginfo   = sv.on_prefix(['ginfo', 'Ginfo', 'GINFO'])
 linfo   = sv.on_prefix(['linfo', 'Linfo', 'LINFO'])
+dxinfo  = sv.on_prefix(['dxinfo', 'DXinfo', 'DXINFO'])
 score   = sv.on_prefix(['分数线'])
 
 
@@ -151,6 +153,60 @@ async def _(bot: NoneBot, ev: CQEvent):
         else:
             songs = str(alias[0].SongID)
     await bot.send(ev, await get_music_level_data(songs), at_sender=True)
+
+
+@dxinfo
+async def _(bot: NoneBot, ev: CQEvent):
+    args: str = ev.message.extract_plain_text().strip()
+    pro = args.split()
+    if len(pro) == 1 and pro[0] == '帮助':
+        msg = dedent('''\
+            此功能为查找某首歌dx星级分数线设计。
+            命令格式：dxinfo「难度+歌曲id」
+            例如：dxinfo 紫799
+            命令将返回各dx星级所需的dx分数。
+            以下为各dx星级所需dx分数比例的数据：
+            1☆：85%；2☆：90%；3☆：93%；4☆：95%；5☆：97%；
+            （玩家定义）5.5☆：98%；6☆：99%.
+        ''').strip()
+        await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg))), at_sender=True)
+    else:
+        try:
+            result = re.search(r'([绿黄红紫白])\s?([0-9]+)', args)
+            level_labels = ['绿', '黄', '红', '紫', '白']
+            level_labels2 = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:MASTER']
+            level_index = level_labels.index(result.group(1))
+            chart_id = result.group(2)
+            music = mai.total_list.by_id(chart_id)
+            chart = music.charts[level_index]
+            tap = int(chart.notes.tap)
+            slide = int(chart.notes.slide)
+            hold = int(chart.notes.hold)
+            touch = int(chart.notes.touch) if len(chart.notes) == 5 else 0
+            brk = int(chart.notes.brk)
+            total_dxscore = (tap + slide + hold + touch + brk) * 3
+            star1 = total_dxscore * 0.85
+            star2 = total_dxscore * 0.90
+            star3 = total_dxscore * 0.93
+            star4 = total_dxscore * 0.95
+            star5 = total_dxscore * 0.97
+            star5_5 = total_dxscore * 0.98
+            star6 = total_dxscore * 0.99
+            msg = dedent(f'''\
+                {music.title}「{level_labels2[level_index]}」
+                dx各星级所需dx分数：
+                1☆：{math.ceil(star1)} ({star1:.2f})
+                2☆：{math.ceil(star2)} ({star2:.2f})
+                3☆：{math.ceil(star3)} ({star3:.2f})
+                4☆：{math.ceil(star4)} ({star4:.2f})
+                5☆：{math.ceil(star5)} ({star5:.2f})
+                5.5☆：{math.ceil(star5_5)} ({star5_5:.2f})
+                6☆：{math.ceil(star6)} ({star6:.2f})
+            ''').strip()
+            await bot.send(ev, msg, at_sender=True)
+        except (AttributeError, ValueError) as e:
+            log.exception(e)
+            await bot.send(ev, '格式错误，输入“dxinfo 帮助”以查看帮助信息', at_sender=True)
 
 
 @score
